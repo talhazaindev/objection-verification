@@ -93,6 +93,11 @@ export default function CertificateCard({
             >
               <span className="text-slate-300 capitalize">
                 {item.evidence_type.replace(/_/g, " ")}
+                {item.client_hash_verified && (
+                  <span className="ml-2 text-emerald-500/80 text-xs">
+                    ✓ capture verified
+                  </span>
+                )}
               </span>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-slate-500">

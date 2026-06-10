@@ -3,9 +3,9 @@
 import { Loader2, Hash, Brain, FileSearch, BadgeCheck } from "lucide-react";
 
 const STEPS = [
-  { icon: Hash, label: "Computing file hashes" },
-  { icon: FileSearch, label: "Extracting & sanitizing text" },
-  { icon: Brain, label: "AI consistency analysis" },
+  { icon: Hash, label: "Verifying client capture hashes" },
+  { icon: FileSearch, label: "Metadata forensics & anomaly scan" },
+  { icon: Brain, label: "Presidio PII redaction + AI analysis" },
   { icon: BadgeCheck, label: "Generating certificate" },
 ];
 

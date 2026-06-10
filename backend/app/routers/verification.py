@@ -1,9 +1,12 @@
+import json
 import os
+from datetime import datetime
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.models.schemas import (
     CertificatePublicResponse,
+    EvidenceFile,
     ReliabilityTier,
     VerificationAnalysis,
     VerificationResponse,
@@ -13,6 +16,7 @@ from app.services.ai_analyzer import (
     analyze_evidence_consistency,
     assess_plausibility,
 )
+from app.services.anomaly_detector import detect_anomalies
 from app.services.certificate_generator import generate_attribution, generate_certificate
 from app.services.evidence_processor import (
     detect_evidence_type,
@@ -20,15 +24,33 @@ from app.services.evidence_processor import (
     extract_text_from_file,
 )
 from app.services.hash_engine import compute_file_hash
+from app.services.metadata_forensics import extract_file_metadata
+from app.services.provenance_engine import aggregate_provenance_score, build_provenance_check
 from app.utils.privacy_filter import sanitize_text
 
 router = APIRouter(prefix="/api/verify", tags=["verification"])
 
 
+def _parse_provenance_map(provenance_json: str) -> dict:
+    try:
+        items = json.loads(provenance_json or "[]")
+        return {
+            item["filename"]: item
+            for item in items
+            if isinstance(item, dict) and "filename" in item
+        }
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
 @router.post("/", response_model=VerificationResponse)
-async def verify_evidence_package(files: list[UploadFile] = File(...)):
+async def verify_evidence_package(
+    files: list[UploadFile] = File(...),
+    provenance: str = Form("[]"),
+):
     """
     Main endpoint: Accept evidence files, verify, analyze, return certificate + attribution.
+    Optional `provenance` JSON: [{filename, client_hash, captured_at}, ...]
     """
     if not os.getenv("GROQ_API_KEY"):
         raise HTTPException(
@@ -43,28 +65,56 @@ async def verify_evidence_package(files: list[UploadFile] = File(...)):
         raise HTTPException(status_code=400, detail="Maximum 10 files allowed per package")
 
     try:
-        evidence_files = []
+        provenance_map = _parse_provenance_map(provenance)
+        server_received_at = datetime.utcnow()
+        evidence_files: list[EvidenceFile] = []
+        provenance_checks = []
+        anomaly_flags = []
+        pre_llm_red_flags: list[str] = []
+
         for file in files:
             content = await file.read()
+            filename = file.filename or "unknown"
             content_hash = compute_file_hash(content)
-            mime = detect_mime_type(content, file.filename or "unknown")
-            ev_type = detect_evidence_type(file.filename or "unknown", content, mime)
-            raw_text = extract_text_from_file(file.filename or "unknown", content, mime)
+            mime = detect_mime_type(content, filename)
+            ev_type = detect_evidence_type(filename, content, mime)
+            raw_text = extract_text_from_file(filename, content, mime)
+
+            file_metadata = extract_file_metadata(filename, content, mime, raw_text)
+            client_prov = provenance_map.get(filename, {})
             sanitized_text = sanitize_text(raw_text)
-
-            from app.models.schemas import EvidenceFile
-
-            evidence_files.append(
-                EvidenceFile(
-                    filename=file.filename or "unknown",
-                    evidence_type=ev_type,
-                    content_hash=content_hash,
-                    file_size=len(content),
-                    mime_type=mime,
-                    extracted_text=sanitized_text,
-                    metadata={"original_filename": file.filename or "unknown"},
-                )
+            ef = EvidenceFile(
+                filename=filename,
+                evidence_type=ev_type,
+                content_hash=content_hash,
+                file_size=len(content),
+                mime_type=mime,
+                extracted_text=sanitized_text,
+                metadata={
+                    "original_filename": filename,
+                    "forensics_format": file_metadata.get("format"),
+                },
             )
+
+            prov_check = build_provenance_check(
+                evidence_id=ef.id,
+                filename=filename,
+                server_hash=content_hash,
+                client_hash=client_prov.get("client_hash"),
+                client_captured_at=client_prov.get("captured_at"),
+                file_metadata=file_metadata,
+                server_received_at=server_received_at,
+            )
+            provenance_checks.append(prov_check)
+            pre_llm_red_flags.extend(prov_check.flags)
+
+            file_anomalies = detect_anomalies(ef.id, ev_type, raw_text, file_metadata)
+            anomaly_flags.extend(file_anomalies)
+            for anomaly in file_anomalies:
+                if anomaly.severity in ("medium", "high"):
+                    pre_llm_red_flags.append(anomaly.description)
+
+            evidence_files.append(ef)
 
         consistency_checks = await analyze_evidence_consistency(evidence_files)
         corroboration_results = await analyze_corroboration(evidence_files)
@@ -82,19 +132,35 @@ async def verify_evidence_package(files: list[UploadFile] = File(...)):
             if corroboration_results
             else 0
         )
+        provenance_score = aggregate_provenance_score(provenance_checks)
+
+        all_red_flags = pre_llm_red_flags + plausibility.get("red_flags", [])
+        key_findings = plausibility.get("key_findings", [])
+        if provenance_score >= 0.85:
+            key_findings = [
+                f"Strong provenance signals (score: {provenance_score:.0%})",
+                *key_findings,
+            ]
+        if anomaly_flags:
+            key_findings.append(
+                f"Pre-LLM anomaly scan flagged {len(anomaly_flags)} item(s) for review"
+            )
 
         analysis = VerificationAnalysis(
             evidence_files=evidence_files,
+            provenance_checks=provenance_checks,
+            anomaly_flags=anomaly_flags,
             consistency_checks=consistency_checks,
             corroboration_results=corroboration_results,
             plausibility_score=plausibility["plausibility_score"],
             reliability_tier=ReliabilityTier.INDETERMINATE,
-            key_findings=plausibility["key_findings"],
-            red_flags=plausibility["red_flags"],
+            key_findings=key_findings,
+            red_flags=all_red_flags,
             confidence_breakdown={
                 "plausibility": plausibility["plausibility_score"],
                 "consistency": avg_consistency,
                 "corroboration": avg_corroboration,
+                "provenance": provenance_score,
             },
         )
 

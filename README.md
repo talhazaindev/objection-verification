@@ -9,16 +9,20 @@
 
 A privacy-preserving evidence verification system that:
 
-1. **Hashes evidence on intake** (SHA-256) to detect tampering
-2. **Auto-extracts text** from `.txt`, `.pdf`, `.mp3`, `.wav`, `.docx`
-3. **Sanitizes PII** before storage/analysis
-4. **Uses Groq (Llama 3.3 70B)** to analyze consistency, corroboration, and plausibility
-5. **Generates a public certificate** with zero source-identifying information
-6. **Produces publication-ready attribution language**
+1. **Hashes evidence at client capture** (SHA-256 in browser) and verifies server-side on intake
+2. **Metadata forensics** on PDF, email chains, and DOCX before AI analysis
+3. **Pre-LLM anomaly detection** — statistical checks on data memos, metadata gaps
+4. **Sanitizes PII** with Microsoft Presidio NER (regex fallback)
+5. **Uses Groq (Llama 3.3 70B)** to analyze consistency, corroboration, and plausibility
+6. **Generates a public certificate** with zero source-identifying information
+7. **Produces publication-ready attribution language**
 
 ## AI Workflow & Tools
 
 - **Groq (Llama 3.3 70B)**: Core evidence analysis (consistency checking, corroboration detection, plausibility assessment)
+- **Presidio + spaCy**: NER-based PII redaction (names, emails, phones, SSN, locations)
+- **Client Web Crypto API**: SHA-256 at file capture for provenance
+- **Metadata forensics**: PDF/DOCX/email header extraction
 - **FastAPI**: Backend API with async endpoints
 - **Next.js 14**: Frontend with App Router, Tailwind CSS, react-dropzone
 - **python-magic**: File type detection
@@ -32,7 +36,7 @@ A privacy-preserving evidence verification system that:
 - **Multi-LLM jury**: Objection uses 5+ models; prototype uses Groq only for speed/cost.
 - **Real-time Fire Blanket**: Out of scope for this challenge.
 - **Honor Index scoring**: Out of scope — focused on single-case verification.
-- **Advanced PII detection**: Used regex-based sanitization; production would use Presidio or similar.
+- **Trusted timestamp authority**: Client/server clocks only; no external TSA anchoring.
 - **Blockchain anchoring**: Hash chain is computed but not anchored to blockchain.
 
 ## Project Structure
@@ -109,8 +113,15 @@ Set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `.env.local`.
 Build and run from the project root:
 
 ```bash
+# Option A: Docker Compose
+docker compose up --build -d
+
+# Option B: Docker CLI
 docker build -t objection-prototype .
 docker run -p 8080:8080 --env-file backend/.env objection-prototype
+
+# Stop
+docker compose down
 ```
 
 Open http://localhost:8080 — nginx routes `/` to Next.js and `/api/*` to FastAPI.

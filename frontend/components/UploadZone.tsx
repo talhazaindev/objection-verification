@@ -2,24 +2,36 @@
 
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, File, X } from "lucide-react";
+import { Upload, File, X, Hash } from "lucide-react";
+import { buildProvenanceRecord, type ClientProvenance } from "@/lib/hash";
+
+export interface CapturedFile {
+  file: File;
+  provenance: ClientProvenance;
+}
 
 interface UploadZoneProps {
-  files: File[];
-  onFilesChange: (files: File[]) => void;
+  captures: CapturedFile[];
+  onCapturesChange: (captures: CapturedFile[]) => void;
   disabled?: boolean;
 }
 
 export default function UploadZone({
-  files,
-  onFilesChange,
+  captures,
+  onCapturesChange,
   disabled = false,
 }: UploadZoneProps) {
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      onFilesChange([...files, ...acceptedFiles]);
+    async (acceptedFiles: File[]) => {
+      const newCaptures = await Promise.all(
+        acceptedFiles.map(async (file) => ({
+          file,
+          provenance: await buildProvenanceRecord(file),
+        }))
+      );
+      onCapturesChange([...captures, ...newCaptures]);
     },
-    [files, onFilesChange]
+    [captures, onCapturesChange]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -35,7 +47,7 @@ export default function UploadZone({
   });
 
   const removeFile = (index: number) => {
-    onFilesChange(files.filter((_, i) => i !== index));
+    onCapturesChange(captures.filter((_, i) => i !== index));
   };
 
   return (
@@ -56,32 +68,41 @@ export default function UploadZone({
           {isDragActive ? "Drop files here" : "Drag & drop evidence files"}
         </p>
         <p className="text-sm text-slate-500 mt-1">
-          Supports .txt, .pdf, .mp3, .wav, .docx
+          SHA-256 hashed at capture · Supports .txt, .pdf, .mp3, .wav, .docx
         </p>
       </div>
 
-      {files.length > 0 && (
+      {captures.length > 0 && (
         <div className="mt-6 space-y-2">
-          {files.map((file, i) => (
+          {captures.map((capture, i) => (
             <div
-              key={`${file.name}-${i}`}
-              className="flex items-center justify-between rounded-xl bg-slate-800/50 px-4 py-3"
+              key={`${capture.file.name}-${i}`}
+              className="rounded-xl bg-slate-800/50 px-4 py-3"
             >
-              <div className="flex items-center gap-3">
-                <File className="h-5 w-5 text-emerald-400" />
-                <span className="text-sm">{file.name}</span>
-                <span className="text-xs text-slate-500">
-                  {(file.size / 1024).toFixed(1)} KB
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <File className="h-5 w-5 text-emerald-400" />
+                  <span className="text-sm">{capture.file.name}</span>
+                  <span className="text-xs text-slate-500">
+                    {(capture.file.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeFile(i)}
+                  disabled={disabled}
+                  className="rounded-lg p-1 hover:bg-slate-700 text-slate-500 disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => removeFile(i)}
-                disabled={disabled}
-                className="rounded-lg p-1 hover:bg-slate-700 text-slate-500 disabled:opacity-50"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                <Hash className="h-3 w-3 text-emerald-500/70" />
+                <span className="font-mono truncate">
+                  {capture.provenance.client_hash.slice(0, 20)}...
+                </span>
+                <span className="text-emerald-500/80">captured at intake</span>
+              </div>
             </div>
           ))}
         </div>

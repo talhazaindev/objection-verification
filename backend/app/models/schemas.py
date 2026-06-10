@@ -47,8 +47,30 @@ class CorroborationResult(BaseModel):
     contradiction_found: bool
 
 
+class ProvenanceCheck(BaseModel):
+    evidence_id: str
+    filename: str
+    server_hash: str
+    client_hash_match: bool
+    client_captured_at: Optional[str] = None
+    server_received_at: str
+    upload_latency_seconds: Optional[float] = None
+    provenance_score: float
+    file_metadata: Dict = Field(default_factory=dict)
+    flags: List[str] = Field(default_factory=list)
+
+
+class AnomalyFlag(BaseModel):
+    evidence_id: str
+    category: str  # statistical | metadata
+    severity: str  # low | medium | high
+    description: str
+
+
 class VerificationAnalysis(BaseModel):
     evidence_files: List[EvidenceFile]
+    provenance_checks: List[ProvenanceCheck] = Field(default_factory=list)
+    anomaly_flags: List[AnomalyFlag] = Field(default_factory=list)
     consistency_checks: List[ConsistencyCheck]
     corroboration_results: List[CorroborationResult]
     plausibility_score: float

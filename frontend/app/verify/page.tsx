@@ -3,20 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Loader2, Shield } from "lucide-react";
-import UploadZone from "@/components/UploadZone";
+import UploadZone, { type CapturedFile } from "@/components/UploadZone";
 import VerificationProgress from "@/components/VerificationProgress";
 import CertificateCard from "@/components/CertificateCard";
 import { verifyEvidence } from "@/lib/api";
 import type { VerificationResponse } from "@/lib/types";
 
 export default function VerifyPage() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [captures, setCaptures] = useState<CapturedFile[]>([]);
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState<VerificationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleVerify = async () => {
-    if (files.length === 0) {
+    if (captures.length === 0) {
       setError("Please upload at least one evidence file.");
       return;
     }
@@ -24,7 +24,10 @@ export default function VerifyPage() {
     setError(null);
     setResult(null);
     try {
-      const data = await verifyEvidence(files);
+      const data = await verifyEvidence(
+        captures.map((c) => c.file),
+        captures.map((c) => c.provenance)
+      );
       setResult(data);
     } catch (err) {
       setError(
@@ -42,20 +45,20 @@ export default function VerifyPage() {
       <div className="mx-auto max-w-3xl">
         <h1 className="text-3xl font-bold mb-2">Verify Evidence Package</h1>
         <p className="text-slate-400 mb-8">
-          Upload your evidence files. We&apos;ll verify integrity, analyze
-          consistency, and generate a privacy-preserving certificate.
+          Files are SHA-256 hashed at capture before upload. We verify integrity,
+          run metadata forensics and anomaly checks, then analyze consistency.
         </p>
 
         <UploadZone
-          files={files}
-          onFilesChange={setFiles}
+          captures={captures}
+          onCapturesChange={setCaptures}
           disabled={verifying}
         />
 
         <button
           type="button"
           onClick={handleVerify}
-          disabled={verifying || files.length === 0}
+          disabled={verifying || captures.length === 0}
           className="mt-6 w-full rounded-xl bg-emerald-500 py-4 font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
         >
           {verifying ? (
@@ -105,6 +108,54 @@ export default function VerifyPage() {
 
             <div className="card-glass p-6">
               <h3 className="font-semibold mb-4">Analysis Details</h3>
+
+              {result.analysis.provenance_checks?.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs text-cyan-400 mb-2">Provenance</p>
+                  <ul className="space-y-1">
+                    {result.analysis.provenance_checks.map((check, i) => (
+                      <li
+                        key={i}
+                        className="text-sm text-slate-300 flex items-start gap-2"
+                      >
+                        <span
+                          className={
+                            check.client_hash_match
+                              ? "text-emerald-400"
+                              : "text-red-400"
+                          }
+                        >
+                          •
+                        </span>
+                        {check.filename}:{" "}
+                        {check.client_hash_match
+                          ? "client/server hash match"
+                          : "hash mismatch"}{" "}
+                        (score {(check.provenance_score * 100).toFixed(0)}%)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.analysis.anomaly_flags?.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs text-amber-400 mb-2">
+                    Pre-LLM Anomalies
+                  </p>
+                  <ul className="space-y-1">
+                    {result.analysis.anomaly_flags.map((flag, i) => (
+                      <li
+                        key={i}
+                        className="text-sm text-slate-300 flex items-start gap-2"
+                      >
+                        <span className="text-amber-400 mt-1">•</span>
+                        [{flag.severity}] {flag.description}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {result.analysis.key_findings.length > 0 && (
                 <div className="mb-4">

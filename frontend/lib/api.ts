@@ -1,3 +1,4 @@
+import type { ClientProvenance } from "./hash";
 import type {
   CertificatePublicResponse,
   VerificationResponse,
@@ -33,10 +34,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function verifyEvidence(
-  files: File[]
+  files: File[],
+  provenance: ClientProvenance[] = []
 ): Promise<VerificationResponse> {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
+  formData.append("provenance", JSON.stringify(provenance));
 
   const response = await fetch(`${getApiBase()}/api/verify/`, {
     method: "POST",

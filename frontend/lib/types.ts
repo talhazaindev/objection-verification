@@ -13,6 +13,29 @@ export interface EvidenceBreakdownItem {
   content_hash: string;
   file_size_kb: number;
   verified_intact: boolean;
+  client_hash_verified?: boolean;
+  provenance_score?: number;
+  metadata_format?: string;
+}
+
+export interface ProvenanceCheck {
+  evidence_id: string;
+  filename: string;
+  server_hash: string;
+  client_hash_match: boolean;
+  client_captured_at?: string;
+  server_received_at: string;
+  upload_latency_seconds?: number;
+  provenance_score: number;
+  file_metadata: Record<string, unknown>;
+  flags: string[];
+}
+
+export interface AnomalyFlag {
+  evidence_id: string;
+  category: string;
+  severity: "low" | "medium" | "high";
+  description: string;
 }
 
 export interface Certificate {
@@ -49,6 +72,8 @@ export interface CorroborationResult {
 
 export interface VerificationAnalysis {
   evidence_files: unknown[];
+  provenance_checks: ProvenanceCheck[];
+  anomaly_flags: AnomalyFlag[];
   consistency_checks: ConsistencyCheck[];
   corroboration_results: CorroborationResult[];
   plausibility_score: number;

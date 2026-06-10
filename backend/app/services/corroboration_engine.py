@@ -8,21 +8,27 @@ def calculate_reliability_tier(
     consistency_score: float,
     corroboration_count: int,
     red_flags: List[str],
+    provenance_score: float = 0.5,
+    high_anomaly_count: int = 0,
 ) -> Tuple[ReliabilityTier, float]:
     """Calculate final reliability tier based on weighted scoring."""
-    w_plausibility = 0.35
-    w_consistency = 0.30
-    w_corroboration = 0.25
+    w_plausibility = 0.30
+    w_consistency = 0.25
+    w_corroboration = 0.20
+    w_provenance = 0.15
     w_red_flags = -0.10
 
     red_flag_penalty = min(len(red_flags) * abs(w_red_flags), 0.30)
+    anomaly_penalty = min(high_anomaly_count * 0.05, 0.15)
     corroboration_normalized = min(corroboration_count / 5, 1.0)
 
     overall_score = (
         (plausibility_score * w_plausibility)
         + (consistency_score * w_consistency)
         + (corroboration_normalized * w_corroboration)
+        + (provenance_score * w_provenance)
         - red_flag_penalty
+        - anomaly_penalty
     )
 
     overall_score = max(0.0, min(1.0, overall_score))
