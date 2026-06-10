@@ -2,7 +2,7 @@
 
 ## Live Demo
 
-- App: [Render URL after deploy]
+- App: [Railway URL after deploy]
 - Repository: https://github.com/talhazaindev/objection-verification
 
 ## What Was Built
@@ -115,7 +115,7 @@ docker run -p 8080:8080 --env-file backend/.env objection-prototype
 
 Open http://localhost:8080 — nginx routes `/` to Next.js and `/api/*` to FastAPI.
 
-For Render/Railway, set `PORT` (injected automatically) and `GROQ_API_KEY` as environment variables.
+For Railway, set `PORT` (injected automatically) and `GROQ_API_KEY` as environment variables.
 
 ## Sample Data
 
@@ -127,29 +127,18 @@ Place evidence files in `sample-data/` and upload via the `/verify` page. Expect
 - `data_comparison_memo.txt`
 - `vasquez_personal_notes.txt`
 
-## Deployment (Render)
-
-### Option A: Blueprint (recommended)
+## Deployment (Railway)
 
 1. Push this repo to [GitHub](https://github.com/talhazaindev/objection-verification)
-2. In [Render Dashboard](https://dashboard.render.com), click **New → Blueprint**
-3. Connect the `objection-verification` repository
-4. Render reads [`render.yaml`](render.yaml) automatically
-5. Set **`GROQ_API_KEY`** when prompted (do not commit this value)
-6. Deploy — your app will be live at `https://objection-verification.onrender.com` (or similar)
-
-### Option B: Manual Web Service
-
-1. **New → Web Service** → connect the GitHub repo
-2. **Runtime:** Docker
-3. **Dockerfile path:** `./Dockerfile`
-4. **Health check path:** `/health`
-5. **Environment variables:**
-   - `GROQ_API_KEY` — required
+2. Go to [Railway](https://railway.com) and sign in with GitHub
+3. **New Project → Deploy from GitHub repo** → select `objection-verification`
+4. Railway auto-detects the root [`Dockerfile`](Dockerfile) and reads [`railway.toml`](railway.toml) for health checks
+5. Open your service → **Variables** and add:
+   - `GROQ_API_KEY` — required (your Groq API key)
    - `GROQ_MODEL` — optional (`llama-3.3-70b-versatile`)
-6. `PORT` is injected by Render automatically
+6. Railway assigns a public URL under **Settings → Networking → Generate Domain**
 
-One URL serves the full app (UI + API via nginx).
+One URL serves the full app (UI + API via nginx). `PORT` is injected by Railway automatically.
 
 **Persistence caveat:** The in-memory `certificate_store` resets on redeploy or restart. Production should use Redis or PostgreSQL.
 
