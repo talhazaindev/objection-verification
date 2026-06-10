@@ -1,0 +1,13 @@
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/.next
+**/.env
+**/.env.local
+**/.git
+**/sample-data
+.cursor
+*.md
+!README.md

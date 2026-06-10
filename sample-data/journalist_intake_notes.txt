@@ -1,0 +1,39 @@
+JOURNALIST INTAKE NOTES
+=======================
+Reporter: Sarah Kwan, Science & Accountability Desk
+Outlet: [Redacted — national broadsheet]
+Date of initial contact: April 22, 2025
+Date of evidence submission: April 28, 2025
+
+BACKGROUND
+
+I was contacted via encrypted channel (Signal) on April 22 by an individual identifying themselves as a postdoctoral researcher at Ashworth University in the United Kingdom. The source claims to have direct, firsthand knowledge of data fabrication in a published paper on CRISPR-based gene therapy for Huntington's disease.
+
+The paper in question was published in The Lancet Neurology in June 2025 under the lead authorship of Prof. Martin Hargrove, Director of the Gene Therapy Laboratory at Ashworth's Department of Molecular Neuroscience. The source is listed as a co-author on the paper.
+
+The source alleges that:
+(a) The principal investigator instructed lab members to remove legitimate experimental data points that did not support the paper's efficacy claims.
+(b) At least one published figure contains values that do not correspond to the raw experimental data.
+(c) The manipulated results were submitted to the journal and to a grant funding body (the Wellcome Trust) without disclosure.
+
+EVIDENCE PROVIDED
+
+The source provided the following materials over two Signal sessions on April 25 and April 28:
+
+1. An email chain between the source and Prof. Hargrove spanning February to April 2025, in which Hargrove gives instructions regarding data handling. The source characterizes these instructions as directives to remove valid data. I note that the language in the emails is open to interpretation.
+
+2. An audio recording (11 minutes, 34 seconds) of a private conversation between the source and another lab member, recorded on March 19, 2025. The source states the other party was aware they were being recorded. The recording captures the other lab member expressing independent concerns about data discrepancies in the paper.
+
+3. A side-by-side comparison document the source prepared, showing specific numerical discrepancies between the raw experimental data and the values that appear in the published paper.
+
+4. A set of personal dated notes the source kept between March and April 2025, documenting their concerns as they arose.
+
+SOURCE MOTIVATION
+
+When asked why they were coming forward, the source stated: "I tried to raise this internally. I went to the department's research integrity officer in late April and was told it would be reviewed, but nothing happened for three weeks. I don't believe the university will act, and this paper is being cited in ongoing clinical trial applications. People could be harmed."
+
+The source has requested full anonymity and has expressed concern about professional retaliation given Prof. Hargrove's seniority and funding influence within the department.
+
+MY ASSESSMENT
+
+The quantitative discrepancies documented in the comparison memo appear specific and verifiable against the published paper. The email chain is suggestive but not conclusive — Hargrove's language could be interpreted as standard data quality management. The audio corroboration from a second lab member strengthens the overall credibility. I am recommending this package for independent verification before proceeding to publication.
