@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime
 
@@ -29,6 +30,7 @@ from app.services.provenance_engine import aggregate_provenance_score, build_pro
 from app.utils.privacy_filter import sanitize_text
 
 router = APIRouter(prefix="/api/verify", tags=["verification"])
+logger = logging.getLogger(__name__)
 
 
 def _parse_provenance_map(provenance_json: str) -> dict:
@@ -53,10 +55,13 @@ async def verify_evidence_package(
     Optional `provenance` JSON: [{filename, client_hash, captured_at}, ...]
     """
     if not os.getenv("GROQ_API_KEY"):
+        logger.warning("Verification rejected: GROQ_API_KEY not configured")
         raise HTTPException(
             status_code=503,
-            detail="Groq API key not configured. Set GROQ_API_KEY in backend/.env",
+            detail="Groq API key not configured. Set GROQ_API_KEY in Railway Variables.",
         )
+
+    logger.info("Verification started for %d file(s)", len(files))
 
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
@@ -175,6 +180,12 @@ async def verify_evidence_package(
             "attribution": attribution,
         }
 
+        logger.info(
+            "Verification complete: certificate_id=%s tier=%s",
+            certificate.certificate_id,
+            certificate.reliability_tier,
+        )
+
         return VerificationResponse(
             certificate=certificate,
             attribution=attribution,
@@ -183,6 +194,7 @@ async def verify_evidence_package(
     except HTTPException:
         raise
     except Exception as exc:
+        logger.exception("Verification failed")
         raise HTTPException(
             status_code=500,
             detail=f"Verification failed: {exc}",

@@ -4,8 +4,12 @@ import type {
   VerificationResponse,
 } from "./types";
 
+function isLocalDevApiUrl(url: string): boolean {
+  return /localhost|127\.0\.0\.1/i.test(url);
+}
+
 function getApiBase(): string {
-  // Server-side (SSR): talk to backend directly inside the container
+  // Server-side (SSR): talk to backend directly inside the unified container
   if (typeof window === "undefined") {
     return (
       process.env.INTERNAL_API_URL ||
@@ -13,8 +17,14 @@ function getApiBase(): string {
       "http://localhost:8000"
     );
   }
-  // Browser: same-origin via nginx when NEXT_PUBLIC_API_URL is unset
-  return process.env.NEXT_PUBLIC_API_URL || "";
+
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  // Ignore localhost URLs in the browser — they only work for split local dev,
+  // not Railway/Docker where nginx serves API on the same origin.
+  if (configured && !isLocalDevApiUrl(configured)) {
+    return configured.replace(/\/$/, "");
+  }
+  return "";
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {

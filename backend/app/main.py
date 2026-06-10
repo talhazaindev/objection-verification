@@ -1,3 +1,5 @@
+import logging
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -9,6 +11,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.routers import verification
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(
     title="Objection Anonymous Source Verification API",
     description="Privacy-preserving evidence verification system",
@@ -42,9 +48,27 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
+@app.on_event("startup")
+async def log_startup_config() -> None:
+    groq_configured = bool(os.getenv("GROQ_API_KEY"))
+    logger.info(
+        "API startup: groq_configured=%s internal_api=%s",
+        groq_configured,
+        os.getenv("INTERNAL_API_URL", "not set"),
+    )
+    if not groq_configured:
+        logger.warning(
+            "GROQ_API_KEY is not set — /api/verify/ will return 503 until configured"
+        )
+
+
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "objection-verification-api"}
+    return {
+        "status": "healthy",
+        "service": "objection-verification-api",
+        "groq_configured": bool(os.getenv("GROQ_API_KEY")),
+    }
 
 
 if __name__ == "__main__":

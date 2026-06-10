@@ -145,9 +145,11 @@ Place evidence files in `sample-data/` and upload via the `/verify` page. Expect
 3. **New Project → Deploy from GitHub repo** → select `objection-verification`
 4. Railway auto-detects the root [`Dockerfile`](Dockerfile) and reads [`railway.toml`](railway.toml) for health checks
 5. Open your service → **Variables** and add:
-   - `GROQ_API_KEY` — required (your Groq API key)
+   - `GROQ_API_KEY` — **required** (your Groq API key)
    - `GROQ_MODEL` — optional (`llama-3.3-70b-versatile`)
-6. Railway assigns a public URL under **Settings → Networking → Generate Domain**
+   - **Do not set** `NEXT_PUBLIC_API_URL` on Railway — the Docker build uses same-origin `/api/*` via nginx. Setting it to `http://localhost:8000` breaks verification in the browser.
+6. After deploy, open `https://<your-domain>/health` and confirm `"groq_configured": true`
+7. Railway assigns a public URL under **Settings → Networking → Generate Domain**
 
 One URL serves the full app (UI + API via nginx). `PORT` is injected by Railway automatically.
 

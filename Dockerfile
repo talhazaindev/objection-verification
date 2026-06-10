@@ -8,10 +8,10 @@ RUN npm ci
 
 COPY frontend/ .
 
-# Same-origin API calls through nginx in the unified container
-ENV NEXT_PUBLIC_API_URL=
+# Same-origin API calls through nginx in the unified container.
+# Force empty at build time so Railway service variables cannot bake localhost into the bundle.
 ENV DOCKER_BUILD=true
-RUN npm run build
+RUN NEXT_PUBLIC_API_URL= npm run build
 
 # Stage 2: Node 20 runtime binaries (matches frontend build)
 FROM node:20-bookworm-slim AS node-runtime
@@ -35,6 +35,8 @@ RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs
 # Backend
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt
+# Warm Presidio/spaCy so the first verify request does not download models at runtime
+RUN python -c "import spacy; spacy.load('en_core_web_sm')"
 COPY backend/app ./backend/app
 
 # Frontend (Next.js standalone)
